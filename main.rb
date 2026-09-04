@@ -3,6 +3,8 @@ class Main
   require 'nokogiri'
   require 'colorize'
   require 'set'
+  require 'json'
+
   # server version
   # allow the manga to be stored in zip and if some user asks for an already downloaded manga sends the zip instead of making all the process again
   # block the loading of images and the like to avoid bandwidth waste https://railsnotes.xyz/blog/ferrum-stealth-browsing
@@ -110,6 +112,25 @@ class Main
   # File.write('berserk_chapters_page.html', doc)
   #
 
+  def self.scrape_chapters(page)
+    doc = Nokogiri::HTML(page.body)
+    found = {}
+
+    doc.css('a[href*="/read/"]').each do |a|
+      href = a['href']
+      id = href[%r{/read/[^/]+/([^/"]+)}, 1]
+      next unless id
+
+      # The chapter title/number sits in a span inside the link
+      title_span = a.at_css('span.truncate')
+      title = title_span ? title_span.text.strip : nil
+
+      found[id] = { 'title' => title, 'href' => href }
+    end
+
+    found
+  end
+
   browser = Ferrum::Browser.new(headless: true, timeout: 30)
   page = browser.create_page
 
@@ -117,10 +138,8 @@ class Main
 
   page.go_to("https://atsu.moe#{manga_url}?filter=all")
   page.network.wait_for_idle
-  sleep(1) # let initial hydration settle
+  sleep(1)
 
-  # Scroll the "Chapters" heading into view first, so subsequent
-  # scrollBy steps operate in the right part of the page
   page.execute(<<~JS)
     const headings = Array.from(document.querySelectorAll('h2'));
     const chaptersHeading = headings.find(h => h.textContent.trim() === 'Chapters');
@@ -134,37 +153,21 @@ class Main
   seen = {}
   stale_iterations = 0
   max_stale_iterations = 3
-  max_total_iterations = 500 # safety cap so a bug can't loop forever
+  max_total_iterations = 500
   iteration = 0
 
   loop do
     iteration += 1
 
-    doc = Nokogiri::HTML(page.body)
-    doc.css('a[href*="/read/"]').each do |a|
-      href = a['href']
-      id = href[%r{/read/[^/]+/([^/"]+)}, 1]
-      next unless id
-
-      seen[id] ||= href
-    end
+    seen.merge!(scrape_chapters(page)) { |_key, old, _new| old } # keep first-seen values
 
     prev_count = seen.size
 
-    # scroll the window down
     page.execute('window.scrollBy(0, 1500)')
     page.network.wait_for_idle
-    sleep(0.8) # give React time to mount newly-intersected rows
+    sleep(0.4)
 
-    # re-scrape after scroll to catch chapters that just mounted
-    doc = Nokogiri::HTML(page.body)
-    doc.css('a[href*="/read/"]').each do |a|
-      href = a['href']
-      id = href[%r{/read/[^/]+/([^/"]+)}, 1]
-      next unless id
-
-      seen[id] ||= href
-    end
+    seen.merge!(scrape_chapters(page)) { |_key, old, _new| old }
 
     new_count = seen.size
 
@@ -186,9 +189,7 @@ class Main
 
   puts "Finished. Collected #{seen.size} chapters."
 
-  # Save final page state and results
   File.write('berserk_chapters_page.html', page.body)
-
   File.write('chapters.json', JSON.pretty_generate(seen))
 
   browser.quit
