@@ -3,10 +3,17 @@
     # block the loading of images and the like to avoid bandwidth waste https://railsnotes.xyz/
     #
     # v2
+    # main.rb should be atsu_scraper.rb
+    # download.rb must remain being a separate file.
+    # the ideal is to name of manga be stored in file and download.rb will pull from there to name the directory and call the *.json to store the images. 
+    # maybe download.rb can be called with args on command line with the name of manga and the main.rb will call the download.rb this way to download specific mangas
+    # menu must collect the name of manga and pass it to the methods of main.rb and append to file too.
+
     # allow user to pass a list of manga names and download it
     # make browser seems more like a normal browser (https://railsnotes.xyz/blog/ferrum-stealth
     # use cellphones as proxy or maybe use 2 oracle servers
     # maybe using catimg to display images, but first check how windows terminal have or if doc
+    #create a method to correct name and put in the correct place the first chapter of each manga in [manga].json
 
     # ask name input from user
     # make browser seems more real by using options

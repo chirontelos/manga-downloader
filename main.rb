@@ -109,7 +109,8 @@ class Main
         stale_iterations = 0
       end
 
-      puts "[iter #{iteration}] total chapters collected: #{new_count} (stale: #{stale_iterations}, at_bottom: #{at_bottom})"
+      # don't need this printed
+      # puts "[iter #{iteration}] total chapters collected: #{new_count} (stale: #{stale_iterations}, at_bottom: #{at_bottom})"
 
       break if stale_iterations >= max_stale_iterations && at_bottom
       break if iteration >= max_total_iterations
