@@ -7,6 +7,7 @@ class Main
   require 'net/http'
   require 'uri'
   require 'json'
+  require_relative 'download'
 
   @@manga_name = ''
   @@manga_path = ''
@@ -120,6 +121,10 @@ class Main
 
     File.write("#{@@manga_name}.json", JSON.pretty_generate(seen))
   end
+
+  def get_manga_name
+    @@manga_name
+  end
 end
 
 browser = Ferrum::Browser.new(
@@ -133,4 +138,9 @@ main = Main.new
 main.find_manga(page)
 main.get_manga_links(page)
 
-browser.quit # must be last line
+browser.quit # quit browser from this file
+
+manga_name = main.get_manga_name
+
+download = Download.new(manga_name, "#{manga_name}.json")
+download.init

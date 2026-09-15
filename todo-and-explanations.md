@@ -8,6 +8,7 @@
     # the ideal is to name of manga be stored in file and download.rb will pull from there to name the directory and call the *.json to store the images. 
     # maybe download.rb can be called with args on command line with the name of manga and the main.rb will call the download.rb this way to download specific mangas
     # menu must collect the name of manga and pass it to the methods of main.rb and append to file too.
+    # check if will have to save composed names with underscore or can be space as the program already does.
 
     # allow user to pass a list of manga names and download it
     # make browser seems more like a normal browser (https://railsnotes.xyz/blog/ferrum-stealth
