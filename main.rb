@@ -142,5 +142,12 @@ browser.quit # quit browser from this file
 
 manga_name = main.get_manga_name
 
-download = Download.new(manga_name, "#{manga_name}.json")
-download.init
+print 'Download now?[y/n] '
+input = gets.chomp.downcase
+
+if input == 'y'
+  download = Download.new(manga_name, "#{manga_name}.json")
+  download.init
+else
+  exit
+end
