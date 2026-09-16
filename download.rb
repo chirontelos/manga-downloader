@@ -1,20 +1,20 @@
+require 'ferrum'
+require 'nokogiri'
+require 'net/http'
+require 'uri'
+require 'fileutils'
+require 'json'
+
 class Download
-  require 'ferrum'
-  require 'nokogiri'
-  require 'net/http'
-  require 'uri'
-  require 'fileutils'
-  require 'json'
+  BASE_URL = 'https://atsu.moe'
+  MAX_DOWNLOAD_THREADS = 4 # parallel image downloads per chapter
 
   def initialize(manga, chapter_JSON)
-    @manga_name = manga # top-level folder name
-    @chapters_JSON = chapter_JSON # produced by your earlier scraping script
+    @manga_name = manga
+    @chapters_JSON = chapter_JSON
   end
 
-  BASE_URL = 'https://atsu.moe'
-  MAX_DOWNLOAD_THREADS = 2 # parallel image downloads per chapter
-
-  def sanitize(name)
+  def self.sanitize(name)
     name.to_s.strip.gsub(/[^\w-]+/, '_')
   end
 
@@ -46,12 +46,17 @@ class Download
 
   def init
     chapters = JSON.parse(File.read(@chapters_JSON))
-    ordered = chapters.to_a # [[chapter_id, {"title"=>..., "href"=>...}], ...]
+    ordered = chapters.to_a
+
+    if ordered.empty?
+      puts 'Nothing to download.'
+      return
+    end
 
     browser = Ferrum::Browser.new(headless: true, timeout: 30)
     page = browser.create_page
 
-    manga_root = File.join(Dir.pwd, @manga_name)
+    manga_root = File.join(Dir.pwd, self.class.sanitize(@manga_name))
     FileUtils.mkdir_p(manga_root)
 
     ordered.each_with_index do |(chapter_id, info), idx|
@@ -59,7 +64,7 @@ class Download
       href  = info['href']
       next unless href
 
-      folder_name = sanitize(title)
+      folder_name = self.class.sanitize(title)
       chapter_dir = File.join(manga_root, folder_name)
       FileUtils.mkdir_p(chapter_dir)
 
@@ -69,7 +74,7 @@ class Download
       begin
         page.go_to(url)
         page.network.wait_for_idle
-        sleep(1) # small buffer for late-mounting images
+        sleep(1)
 
         image_urls = extract_page_urls(page)
 
