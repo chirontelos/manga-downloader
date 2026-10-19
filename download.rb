@@ -4,10 +4,11 @@ require 'net/http'
 require 'uri'
 require 'fileutils'
 require 'json'
+require 'time'
 
 class Download
   BASE_URL = 'https://atsu.moe'
-  MAX_DOWNLOAD_THREADS = 4 # parallel image downloads per chapter
+  MAX_DOWNLOAD_THREADS = 6 # parallel image downloads per chapter
 
   def initialize(manga, chapter_JSON)
     @manga_name = manga
@@ -69,7 +70,7 @@ class Download
       FileUtils.mkdir_p(chapter_dir)
 
       url = href.start_with?('http') ? href : "#{BASE_URL}#{href}"
-      puts "[#{idx + 1}/#{ordered.size}] Loading #{title} (#{url})"
+      puts "[#{idx + 1}/#{ordered.size}] Loading #{title}"
 
       begin
         page.go_to(url)
@@ -83,7 +84,7 @@ class Download
           next
         end
 
-        puts "  Found #{image_urls.size} pages, downloading..."
+        print "  Found #{image_urls.size} pages, downloading...\t"
 
         threads = []
         image_urls.each_with_index do |img_url, page_idx|
@@ -102,19 +103,19 @@ class Download
         end
         threads.each(&:join)
 
-        puts "  Done: #{image_urls.size} images saved to #{chapter_dir}"
+        puts "  Done: #{image_urls.size} images saved"
       rescue StandardError => e
         warn "  Error processing #{title}: #{e.message}"
       end
 
       next unless idx < ordered.size - 1
 
-      delay = rand(10..20)
+      delay = rand(30..70)
       puts "  Waiting #{delay}s before next chapter..."
       sleep(delay)
     end
 
     browser.quit
-    puts 'All done.'
+    puts 'All done at ' + Time.now.to_s
   end
 end
