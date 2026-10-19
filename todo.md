@@ -34,6 +34,9 @@ from list lowercase in memory and matching the majority of letters in the order
 from times to times
 
 ## Features to implement:
+- treat the case if the user enter to download the latest chapter of hunter x hunter and it isn't on the already 
+existing hunter x hunter.json file, then scrape the hunter hunter page to see if there is the chapter the user wants
+if there is one, download it.
 like https://atsu.moe/manga/MSUd3 or manga/MSUd3
 - show amount of chapters in the side of manga name
 - implement a way to use 2 or 3 ips to download faster. like using oracle vms or 
@@ -68,3 +71,7 @@ u
 
 ## DONE
 - decrease the maximum time of waiting in downloading a chapter to 70s [DONE]
+
+## check
+- tokyo ghoul jack
+- parasite in love
