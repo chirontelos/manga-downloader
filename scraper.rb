@@ -12,7 +12,7 @@ class Scraper
   end
 
   def self.sanitize_filename(name)
-    name.to_s.strip.gsub(%r{[/\\:*?"<>|]}, '_')
+    name.to_s.strip.downcase.gsub(/\b(?<!\.)[a-z]/) { |match| match.upcase }
   end
 
   def self.json_path_for(name)
@@ -21,6 +21,7 @@ class Scraper
 
   def self.find_json_path(name)
     target = sanitize_filename(name).downcase
+
     Dir.glob(File.join(JSONS_DIR, '*.json')).find do |path|
       File.basename(path, '.json').downcase == target
     end
