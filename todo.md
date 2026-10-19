@@ -64,6 +64,7 @@ u
 - before searching for a manga in the website, must check first if there is a 
 *.json for the manga name provided
 - allow to download placing the url of manga directly, 
+- create a rake function to delete the jsons of mangas already fully downloaded
 
 ## DONE
 - decrease the maximum time of waiting in downloading a chapter to 70s [DONE]

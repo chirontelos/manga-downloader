@@ -148,6 +148,8 @@ end
 
 def option_d
   downloaded, pending = Library.list_mangas
+  letters = ('a'..'z').to_a
+  current_index = 0
 
   puts "\nDownloaded mangas:"
   if downloaded.empty?
@@ -160,12 +162,25 @@ def option_d
   if pending.empty?
     puts '  (none)'
   else
-    pending.each { |name| puts "  - #{name}" }
+    pending.each do |name|
+      letter = letters[current_index] || '?'
+      puts "  [#{letter}] #{name}"
+      current_index += 1
+    end
   end
 
-  print "\nDownload one now? Enter manga name (or blank to skip): "
-  name = gets.chomp
-  return if name.strip.empty?
+  print "\nDownload one now? Enter letter (or blank to skip): "
+  input = gets.chomp.strip.downcase
+  return if input.empty?
+
+  index = letters.index(input)
+
+  unless index && index < pending.length
+    puts "Invalid option: #{input}"
+    return
+  end
+
+  name = pending[index]
 
   unless Scraper.json_exists?(name)
     puts "No data found for \"#{name}\"."
