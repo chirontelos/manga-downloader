@@ -15,7 +15,7 @@ class Download
   end
 
   def self.sanitize(name)
-    name.to_s.strip.gsub(/[^\w-]+/, '_')
+    name.to_s.strip.downcase.gsub(/\b(?<!\.)[a-z]/) { |match| match.upcase }
   end
 
   def download_image(url, dest_path)
