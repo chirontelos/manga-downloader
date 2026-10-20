@@ -82,10 +82,28 @@ class Scraper
       title_span = a.at_css('span.truncate')
       title = title_span ? title_span.text.strip : nil
 
-      found[id] = { 'title' => title, 'href' => href }
+      # The "Start reading" shortcut points at the first chapter (e.g.
+      # "Prologue 1"), so it shares that chapter's id/href. Ignore it so the
+      # real title can be captured later.
+      next if title == 'Start reading'
+
+      existing = found[id]
+
+      # Some rows expose the same href twice (one without a title); keep a
+      # titled entry over an untitled one instead of overwriting it.
+      found[id] = { 'title' => title, 'href' => href } if existing.nil? || existing['title'].nil?
     end
 
     found
+  end
+
+  # Merges newly scraped chapters into +seen+ without downgrading an already
+  # known title to nil.
+  def merge_chapters!(seen, new_entries)
+    new_entries.each do |id, info|
+      existing = seen[id]
+      seen[id] = info if existing.nil? || (existing['title'].nil? && info['title'])
+    end
   end
 
   # Scrolls through the (virtualized) chapters list, collecting every entry.
@@ -112,14 +130,15 @@ class Scraper
 
     loop do
       iteration += 1
-      seen.merge!(scrape_chapter_links_from_page) { |_key, old, _new| old }
+      merge_chapters!(seen, scrape_chapter_links_from_page)
       prev_count = seen.size
 
-      @page.execute('window.scrollBy(0, 1500)')
+      # Smaller step so virtualized rows aren't skipped.
+      @page.execute('window.scrollBy(0, 800)')
       @page.network.wait_for_idle
-      sleep(0.4)
+      sleep(0.6)
 
-      seen.merge!(scrape_chapter_links_from_page) { |_key, old, _new| old }
+      merge_chapters!(seen, scrape_chapter_links_from_page)
       new_count = seen.size
 
       at_bottom = @page.evaluate(
@@ -132,21 +151,50 @@ class Scraper
       break if iteration >= max_total_iterations
     end
 
+    settle_at_bottom(seen)
     fix_chapter_order(seen)
+  end
+
+  # The last rows (e.g. "Prologue 1") often render late once the bottom is
+  # reached. Keep scrolling to the bottom and re-scraping with longer waits
+  # until nothing new shows up.
+  def settle_at_bottom(seen, max_attempts: 8)
+    quiet = 0
+
+    max_attempts.times do
+      before = seen.size
+
+      # Virtualized lists often only (re)render their last rows when the
+      # viewport moves, so scroll up a bit first, then back to the very
+      # bottom, scraping at each position.
+      @page.execute('window.scrollBy(0, -700)')
+      sleep(1.0)
+      merge_chapters!(seen, scrape_chapter_links_from_page)
+
+      @page.execute('window.scrollTo(0, document.body.scrollHeight)')
+      @page.network.wait_for_idle
+      sleep(2.0)
+      merge_chapters!(seen, scrape_chapter_links_from_page)
+
+      quiet = seen.size == before ? quiet + 1 : 0
+
+      break if quiet >= 3
+    end
   end
 
   # Repositions misplaced/null-titled entries (typically the earliest
   # chapter/volume) into their correct numeric spot in the descending list.
+  # Ties (e.g. "Chapter 3" and "Prologue 3") keep the site's original order.
   def fix_chapter_order(chapters_hash)
     entries = chapters_hash.map { |id, info| [id, info] }
 
-    numbered = entries.map do |id, info|
+    numbered = entries.each_with_index.map do |(id, info), idx|
       title = info['title']
       num = title ? title[/(\d+(?:\.\d+)?)/, 1] : nil
-      [id, info, num&.to_f]
+      [id, info, num&.to_f, idx]
     end
 
-    known_numbers = numbered.map { |_, _, num| num }.compact
+    known_numbers = numbered.map { |_, _, num, _| num }.compact
     return chapters_hash if known_numbers.empty?
 
     max_num = known_numbers.max
@@ -155,18 +203,18 @@ class Scraper
     missing = ((min_num.to_i)..(max_num.to_i)).to_a - known_numbers.map(&:to_i)
     missing.sort!
 
-    numbered = numbered.map do |id, info, num|
+    numbered = numbered.map do |id, info, num, idx|
       if num.nil?
         inferred = missing.shift || (min_num - 1)
-        [id, info, inferred.to_f]
+        [id, info, inferred.to_f, idx]
       else
-        [id, info, num]
+        [id, info, num, idx]
       end
     end
 
     numbered
-      .sort_by { |_, _, num| -num }
-      .each_with_object({}) { |(id, info, _), hash| hash[id] = info }
+      .sort_by { |_, _, num, idx| [-num, idx] }
+      .each_with_object({}) { |(id, info, _, _), hash| hash[id] = info }
   end
 
   def save_chapters(name, chapters_hash)
