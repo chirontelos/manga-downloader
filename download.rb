@@ -16,7 +16,7 @@ class Download
   end
 
   def self.sanitize(name)
-    name.to_s.strip.gsub(/[^\w-]+/, '_')
+    name.to_s.strip.downcase.gsub(/\b(?<!\.)[a-z]/) { |match| match.upcase }
   end
 
   def download_image(url, dest_path)
@@ -110,7 +110,11 @@ class Download
 
       next unless idx < ordered.size - 1
 
+<<<<<<< HEAD
       delay = rand(30..70)
+=======
+      delay = rand(30..50)
+>>>>>>> development
       puts "  Waiting #{delay}s before next chapter..."
       sleep(delay)
     end
