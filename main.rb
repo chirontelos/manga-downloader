@@ -47,27 +47,50 @@ def parse_chapter_selection(input, chapters_hash)
 end
 
 def option_a
+  print 'Enter manga name: '
+  name = gets.chomp
+
   with_browser do |page|
     scraper = Scraper.new(page)
 
-    print 'Enter a manga name: '
-    name_input = gets.chomp
+    unless Scraper.json_exists?(name)
+      puts "No local data found for \"#{name}\", searching the website..."
+      result = scraper.search_manga(name)
 
-    result = scraper.search_manga(name_input)
-    unless result
-      puts 'Manga not found.'
+      unless result
+        puts 'Manga not found.'
+        return
+      end
+
+      chapters = scraper.get_chapter_list(result[:href])
+      scraper.save_chapters(result[:name], chapters)
+      name = result[:name]
+      puts "Saved #{chapters.size} chapters."
+    end
+
+    chapters_hash = Scraper.load_json(name)
+
+    print 'Enter chapter(s) to download (e.g. "100-105", "100", "100,135,151", or "all"): '
+    range_input = gets.chomp
+
+    if range_input.strip.downcase == 'all'
+      Download.new(name, Scraper.json_path_for(name)).init
       return
     end
 
-    puts "Scraping chapters for #{result[:name]}..."
-    chapters = scraper.get_chapter_list(result[:href])
-    scraper.save_chapters(result[:name], chapters)
-    puts "Saved #{chapters.size} chapters to #{Scraper.json_path_for(result[:name])}"
+    selection = parse_chapter_selection(range_input, chapters_hash)
 
-    print 'Download now? [y/n] '
-    input = gets.chomp.downcase
+    if selection.empty?
+      puts 'No matching chapters found.'
+      return
+    end
 
-    Download.new(result[:name], Scraper.json_path_for(result[:name])).init if input == 'y'
+    temp_json = Scraper.json_path_for("#{name}_selection_tmp")
+    File.write(temp_json, JSON.pretty_generate(selection))
+
+    Download.new(name, temp_json).init
+
+    File.delete(temp_json) if File.exist?(temp_json)
   end
 end
 
@@ -100,49 +123,6 @@ def option_b
       puts "  Waiting #{delay}s before next manga..."
       sleep(delay)
     end
-  end
-end
-
-def option_c
-  print 'Enter manga name: '
-  name = gets.chomp
-
-  with_browser do |page|
-    scraper = Scraper.new(page)
-
-    unless Scraper.json_exists?(name)
-      puts "No local data found for \"#{name}\", searching the website..."
-      result = scraper.search_manga(name)
-
-      unless result
-        puts 'Manga not found.'
-        return
-      end
-
-      chapters = scraper.get_chapter_list(result[:href])
-      scraper.save_chapters(result[:name], chapters)
-      name = result[:name]
-      puts "Saved #{chapters.size} chapters."
-    end
-
-    chapters_hash = Scraper.load_json(name)
-
-    print 'Enter chapter(s) to download (e.g. "100-105", "100", or "100,135,151"): '
-    range_input = gets.chomp
-
-    selection = parse_chapter_selection(range_input, chapters_hash)
-
-    if selection.empty?
-      puts 'No matching chapters found.'
-      return
-    end
-
-    temp_json = Scraper.json_path_for("#{name}_selection_tmp")
-    File.write(temp_json, JSON.pretty_generate(selection))
-
-    Download.new(name, temp_json).init
-
-    File.delete(temp_json) if File.exist?(temp_json)
   end
 end
 
@@ -226,7 +206,6 @@ loop do
   puts "\n===== Manga Downloader ====="
   puts '[a] manga name to download now'
   puts '[b] add manga to list'
-  puts '[c] download specific chapters'
   puts '[d] list mangas'
   puts '[e] download from list'
   puts '[q] quit'
@@ -237,7 +216,6 @@ loop do
   case choice
   when 'a' then option_a
   when 'b' then option_b
-  when 'c' then option_c
   when 'd' then option_d
   when 'e' then option_e
   when 'q' then break
