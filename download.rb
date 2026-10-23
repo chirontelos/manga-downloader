@@ -110,11 +110,7 @@ class Download
 
       next unless idx < ordered.size - 1
 
-<<<<<<< HEAD
-      delay = rand(30..70)
-=======
       delay = rand(30..50)
->>>>>>> development
       puts "  Waiting #{delay}s before next chapter..."
       sleep(delay)
     end

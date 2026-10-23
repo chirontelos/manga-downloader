@@ -1,11 +1,4 @@
 ## fixes
-<<<<<<< HEAD
-- some manga in the list have spaces after the undercore, 
-like Tokyo Ghoul and Rurouni Kenshin
-- fix the naming of chapter 1 that still has problems.
-- check rurouni kenshin and tokyo ghoul again in "list" option to fix
-the *.json naming method
-=======
 1. decide if option 'a' and 'c' should be only one and then make the unique option be 
 the 'c' and allow to choose to download all manga or just specific chapters using a 
 switch case accordgly input(all or 1-50 por example)
@@ -14,7 +7,6 @@ so download from list should come from the option d after showing the list(Downl
 Then after selecting one ask is download specific chapters or all manga. if already 
 downloaded some chapters option all chapters will not be suggested)
 
->>>>>>> development
 - make the download of chapters of already partially downloaded manga go to the already 
 existing folder instead of creating another folder changing uppercase for lowercase
 
@@ -26,11 +18,8 @@ with a list of options [A] download all manga\n [B] download a interval of chapt
 - make the [A] option download from first chapter to the last, as the option [C]
 already does.
 
-<<<<<<< HEAD
-=======
 - seems like option c searches locally for jsons. Option a must do the same.
 
->>>>>>> development
 - check if memory usage is increasing after each chapter download. If yes, correct it.
 - make the program save in a file the chapters not downloaded, this way we check for errors.
 - investigate why ram consuption increases after each chapter downloaded
@@ -41,11 +30,6 @@ to check this can compare the amount of chapters listed on json and the amount o
 inside the folder of manga, after the check knowing it was already downloaded this state must be 
 saved and not check again based on existing of manga folder, but about the state saved, 
 like a [downloaded] aside the manga name. The reason for this is that I zip and pass to hdd much times.
-<<<<<<< HEAD
-- for some reason bakuman doesn't appear if using option [b](Searching for "bakuman"...
-  Not found: bakuman) but if using option [a] it appears
-=======
->>>>>>> development
 - Bakuman in list of mangas appears with a symbol after the name and makes difficult to select it.
 make the names of list be in lowercase or at least make the search find it by proximity of name, turning the name of manga 
 from list lowercase in memory and matching the majority of letters in the order
@@ -53,12 +37,9 @@ from list lowercase in memory and matching the majority of letters in the order
 from times to times
 
 ## Features to implement:
-<<<<<<< HEAD
-=======
 - treat the case if the user enter to download the latest chapter of hunter x hunter and it isn't on the already 
 existing hunter x hunter.json file, then scrape the hunter hunter page to see if there is the chapter the user wants
 if there is one, download it.
->>>>>>> development
 like https://atsu.moe/manga/MSUd3 or manga/MSUd3
 - show amount of chapters in the side of manga name
 - implement a way to use 2 or 3 ips to download faster. like using oracle vms or 
@@ -93,6 +74,4 @@ u
 
 ## DONE
 - decrease the maximum time of waiting in downloading a chapter to 70s [DONE]
-=======
 - create a rake function to delete the jsons of mangas already fully downloaded
->>>>>>> development
