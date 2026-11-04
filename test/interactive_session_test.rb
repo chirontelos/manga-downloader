@@ -17,23 +17,10 @@ class InteractiveSessionTest < Minitest::Test
 
   def test_download_now_saves_only_the_selected_search_result
     with_config do |config, _dir|
-      results = duplicate_name_results
-      store = MangaDownloader::Storage::ChapterStore.new(config)
-      out = StringIO.new
-      ui = MangaDownloader::UI::Console.new(input: StringIO.new("evangelion\nb\n"), output: out)
-      session = MangaDownloader::InteractiveSession.new(
-        config: config,
-        store: store,
-        metadata: MangaDownloader::Storage::MetadataStore.new(config),
-        api: nil,
-        ui: ui,
-        reporter: MangaDownloader::Reporter.new(out: out, err: StringIO.new)
-      )
-      search = FakeSearch.new(results)
-      session.define_singleton_method(:with_search) { |&block| block.call(search) }
+      session, store, out = build_session(config, input: "evangelion\nb\n")
+      stub_search(session, duplicate_name_results)
+      started = stub_download(session)
 
-      started = []
-      session.define_singleton_method(:start_download) { |name, _chapters| started << name }
       session.send(:download_now)
 
       assert_equal ['Evangelion: Campus Apocalypse'], started
@@ -44,7 +31,58 @@ class InteractiveSessionTest < Minitest::Test
     end
   end
 
+  def test_download_now_accepts_multiple_selections
+    with_config do |config, _dir|
+      session, store, _out = build_session(config, input: "evangelion\na, b\n")
+      stub_search(session, duplicate_name_results)
+      started = stub_download(session)
+
+      session.send(:download_now)
+
+      assert_equal ['Evangelion', 'Evangelion: Campus Apocalypse'], started
+      assert_equal ['Evangelion', 'Evangelion: Campus Apocalypse'], store.names.sort
+    end
+  end
+
+  def test_add_manga_saves_multiple_selected_results
+    with_config do |config, _dir|
+      session, store, out = build_session(config, input: "evangelion\na, b\n")
+      stub_search(session, duplicate_name_results)
+
+      session.send(:add_manga)
+
+      assert_equal ['Evangelion', 'Evangelion: Campus Apocalypse'], store.names.sort
+      assert_equal 2, out.string.scan('Saved 1 chapters').size
+    end
+  end
+
   private
+
+  def build_session(config, input:)
+    out = StringIO.new
+    store = MangaDownloader::Storage::ChapterStore.new(config)
+    ui = MangaDownloader::UI::Console.new(input: StringIO.new(input), output: out)
+    session = MangaDownloader::InteractiveSession.new(
+      config: config,
+      store: store,
+      metadata: MangaDownloader::Storage::MetadataStore.new(config),
+      api: nil,
+      ui: ui,
+      reporter: MangaDownloader::Reporter.new(out: out, err: StringIO.new)
+    )
+    [session, store, out]
+  end
+
+  def stub_search(session, results)
+    search = FakeSearch.new(results)
+    session.define_singleton_method(:with_search) { |&block| block.call(search) }
+  end
+
+  def stub_download(session)
+    started = []
+    session.define_singleton_method(:start_download) { |name, _chapters| started << name }
+    started
+  end
 
   def duplicate_name_results
     [

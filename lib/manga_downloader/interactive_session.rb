@@ -77,11 +77,17 @@ module MangaDownloader
           next
         end
 
-        selected = choose_manga(results)
+        selected = choose_results(
+          results, heading: "\nMangas found:",
+                   question: "\nSelect manga(s) to download now, separated by commas (or blank to skip): "
+        )
         next unless selected
 
-        save_result(selected, search: search, overwrite: true)
-        start_download(selected[:name], @store.load(selected[:name]))
+        selected.each_with_index do |result, index|
+          save_result(result, search: search, overwrite: true)
+          start_download(result[:name], @store.load(result[:name]))
+          pause_between_mangas if index < selected.size - 1
+        end
       end
     end
 
@@ -92,21 +98,32 @@ module MangaDownloader
 
       with_search do |search|
         names.each_with_index do |name, index|
-          @reporter.info("Searching for \"#{name}\"...")
-          result = search.resolve_link(name) || choose_search_result(search.search(name), name)
-
-          unless result
-            @reporter.info("  Not found: #{name}")
-            next
-          end
-
-          chapters = result[:chapters] || search.chapter_scraper.get_chapter_list(result[:href])
-          @store.save(result[:name], chapters)
-          @reporter.info("  Saved #{chapters.size} chapters to #{@store.path_for(result[:name])}")
-
+          add_manga_name(search, name)
           pause_between_mangas if index < names.size - 1
         end
       end
+    end
+
+    def add_manga_name(search, name)
+      @reporter.info("Searching for \"#{name}\"...")
+      linked = search.resolve_link(name)
+      return save_search_result(linked, search) if linked
+
+      found = search.search(name)
+      selected = choose_results(found, heading: "Mangas found for \"#{name}\":",
+                                       question: 'Enter letter(s), separated by commas (or blank to skip): ')
+      if selected.nil?
+        @reporter.info("  Not found: #{name}") if found.empty?
+        return
+      end
+
+      selected.each { |result| save_search_result(result, search) }
+    end
+
+    def save_search_result(result, search)
+      chapters = result[:chapters] || search.chapter_scraper.get_chapter_list(result[:href])
+      @store.save(result[:name], chapters)
+      @reporter.info("  Saved #{chapters.size} chapters to #{@store.path_for(result[:name])}")
     end
 
     def list_library
@@ -205,53 +222,38 @@ module MangaDownloader
       end
     end
 
-    def choose_manga(results)
-      return results.first if results.size == 1
+    def choose_results(results, heading:, question:)
+      return nil if results.empty?
+      return [results.first] if results.size == 1
 
       labels = Labels.for(results.size)
-      mapping = {}
-
-      @reporter.info("\nMangas found:")
+      @reporter.info(heading)
       results.each_with_index do |result, index|
-        letter = labels[index]
-        next unless letter
-
-        mapping[letter] = result
-        @reporter.info("[#{letter}] #{result[:name]}")
+        @reporter.info("[#{labels[index]}] #{result[:name]}")
       end
 
-      input = prompt("\nSelect a manga to download now (or blank to skip): ")&.downcase
+      input = prompt(question)
       return nil if input.nil? || input.empty?
 
-      selected = mapping[input]
-      @reporter.info('Invalid selection.') unless selected
-      selected
+      selected = parse_selection(input, labels).filter_map { |index| results[index] }
+      @reporter.info('Invalid selection.') if selected.empty?
+      selected.empty? ? nil : selected
     end
 
-    def choose_search_result(results, name)
-      return nil if results.empty?
-      return results.first if results.size == 1
-
-      labels = Labels.for(results.size)
-      @reporter.info("Mangas found for \"#{name}\":")
-      results.each_with_index { |result, index| @reporter.info("[#{labels[index]}] #{result[:name]}") }
-
-      input = prompt('Enter a letter: ')&.downcase
-      return nil if input.nil?
-
-      results[labels.index(input)]
+    # Accepts "a, b" or "a b".
+    def parse_selection(input, labels)
+      input.downcase.split(/[,\s]+/).uniq.filter_map { |token| labels.index(token) }
     end
 
     def save_result(result, search:, overwrite:)
-      name = result[:name]
       chapters = result[:chapters] || search.chapter_scraper.get_chapter_list(result[:href])
 
-      if overwrite || !@store.exist?(name)
-        @store.save(name, chapters)
-        @reporter.info("Saved #{chapters.size} chapters to #{@store.path_for(name)}")
+      if overwrite || !@store.exist?(result[:name])
+        @store.save(result[:name], chapters)
+        @reporter.info("Saved #{chapters.size} chapters to #{@store.path_for(result[:name])}")
       end
 
-      { name: name, chapters: chapters }
+      { name: result[:name], chapters: chapters }
     end
 
     def start_download(name, chapters)
