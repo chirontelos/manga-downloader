@@ -18,8 +18,8 @@ module MangaDownloader
       ===== Manga Downloader =====
       [a] manga name or link to download now
       [b] add manga to list
-      [d] list mangas and download
-      [u] check for updates
+      [c] list mangas and download
+      [d] check for updates
       [q] quit
     TEXT
 
@@ -43,8 +43,8 @@ module MangaDownloader
         case prompt('Choose an option: ')&.downcase
         when 'a' then download_now
         when 'b' then add_manga
-        when 'd' then list_library
-        when 'u' then check_for_updates
+        when 'c' then list_library
+        when 'd' then check_for_updates
         when 'q', nil then break
         else @reporter.info('Invalid option.')
         end
@@ -77,10 +77,10 @@ module MangaDownloader
           next
         end
 
-        saved = results.map { |result| save_result(result, search: search, overwrite: true) }
-        selected = choose_manga(saved)
+        selected = choose_manga(results)
         next unless selected
 
+        save_result(selected, search: search, overwrite: true)
         start_download(selected[:name], @store.load(selected[:name]))
       end
     end
@@ -205,17 +205,19 @@ module MangaDownloader
       end
     end
 
-    def choose_manga(saved)
-      labels = Labels.for(saved.size)
+    def choose_manga(results)
+      return results.first if results.size == 1
+
+      labels = Labels.for(results.size)
       mapping = {}
 
-      @reporter.info("\nSaved manga lists:")
-      saved.each_with_index do |entry, index|
+      @reporter.info("\nMangas found:")
+      results.each_with_index do |result, index|
         letter = labels[index]
         next unless letter
 
-        mapping[letter] = entry
-        @reporter.info("[#{letter}] #{entry[:name]}")
+        mapping[letter] = result
+        @reporter.info("[#{letter}] #{result[:name]}")
       end
 
       input = prompt("\nSelect a manga to download now (or blank to skip): ")&.downcase
