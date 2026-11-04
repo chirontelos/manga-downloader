@@ -55,14 +55,15 @@ class ChapterDownloaderTest < Minitest::Test
     end.join
   end
 
-  def build(config, chapters, fetcher: FakeFetcher.new, image_count: 2)
+  def build(config, chapters, fetcher: FakeFetcher.new, image_count: 2, delays: [])
     MangaDownloader::Downloader::ChapterDownloader.new(
       config: config,
       manga_name: 'Berserk',
       chapters: chapter_list(chapters),
       reporter: silence_reporter,
       fetcher: fetcher,
-      browser_factory: -> { FakeBrowser.new(html_with_images(image_count)) }
+      browser_factory: -> { FakeBrowser.new(html_with_images(image_count)) },
+      sleeper: ->(seconds) { delays << seconds }
     )
   end
 
@@ -122,6 +123,27 @@ class ChapterDownloaderTest < Minitest::Test
 
       assert_equal 1, summary.skipped
       assert_empty fetcher.calls
+    end
+  end
+
+  def test_does_not_wait_for_already_downloaded_chapters
+    with_config do |config, _dir|
+      complete = File.join(config.mangas_dir, 'Berserk', 'Chapter 1')
+      FileUtils.mkdir_p(complete)
+      File.write(File.join(complete, '001.webp'), 'image')
+
+      chapters = {
+        'c3' => { 'title' => 'Chapter 3', 'href' => '/read/m/c3' },
+        'c2' => { 'title' => 'Chapter 2', 'href' => '/read/m/c2' },
+        'c1' => { 'title' => 'Chapter 1', 'href' => '/read/m/c1' }
+      }
+      delays = []
+
+      summary = build(config, chapters, delays: delays).call(skip_existing: true)
+
+      assert_equal 1, summary.skipped
+      assert_equal 2, summary.completed
+      assert_equal 1, delays.size, 'only the two real downloads should be paced'
     end
   end
 

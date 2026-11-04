@@ -23,7 +23,8 @@ module MangaDownloader
       end
 
       def initialize(config:, manga_name:, chapters:, reporter:,
-                     fetcher: nil, browser_factory: nil)
+                     fetcher: nil, browser_factory: nil,
+                     sleeper: ->(seconds) { sleep(seconds) })
         @config = config
         @manga_name = manga_name
         @chapters = chapters
@@ -32,6 +33,7 @@ module MangaDownloader
           config: config, reporter: reporter, manga_name: manga_name
         )
         @browser_factory = browser_factory || -> { Scraping::BrowserSession.build(config) }
+        @sleeper = sleeper
       end
 
       def call(limit: nil, skip_existing: false)
@@ -45,9 +47,9 @@ module MangaDownloader
         ordered.each_with_index do |chapter, index|
           break if limit_reached?(limit, summary)
 
-          summary = download_chapter(chapter, manga_root, summary, skip_existing: skip_existing)
+          summary, status = download_chapter(chapter, manga_root, summary, skip_existing: skip_existing)
           break if limit_reached?(limit, summary)
-          next if index >= ordered.size - 1
+          next if status == :skipped || index >= ordered.size - 1
 
           pause_before_next_chapter
         end
@@ -70,22 +72,26 @@ module MangaDownloader
       def pause_before_next_chapter
         delay = @config.chapter_delay_seconds
         @reporter.info("  Waiting #{delay}s before next chapter...")
-        sleep(delay)
+        @sleeper.call(delay)
       end
 
+      # Returns [updated_summary, status]. Status is used by the caller to avoid
+      # pacing between chapters that were skipped or never downloaded.
       def download_chapter(chapter, manga_root, summary, skip_existing:)
         title = chapter.title || chapter.id
         directory = File.join(manga_root, Naming.path_segment(title))
 
-        return summary.with(skipped: summary.skipped + 1) if skip_existing && ChapterMarker.complete?(directory)
+        if skip_existing && ChapterMarker.complete?(directory)
+          return [summary.with(skipped: summary.skipped + 1), :skipped]
+        end
 
         unless chapter.href
           @reporter.error('chapter has no href, skipping', manga: @manga_name, chapter: title)
-          return summary.with(failed: summary.failed + 1)
+          return [summary.with(failed: summary.failed + 1), :failed]
         end
 
         status = fetch_chapter(chapter, title, directory)
-        summary.with(**{ status => summary.public_send(status) + 1 })
+        [summary.with(**{ status => summary.public_send(status) + 1 }), status]
       end
 
       def fetch_chapter(chapter, title, directory)
