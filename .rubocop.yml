@@ -1,0 +1,56 @@
+plugins:
+  - rubocop-performance
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'jsons/**/*'
+    - 'mangas/**/*'
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/ClassLength:
+  Max: 230
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/AbcSize:
+  Max: 35
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+    - 'Rakefile'
+
+Metrics/ParameterLists:
+  Max: 8
+  CountKeywordArgs: false
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - ui
+    - id
+
+Lint/SuppressedException:
+  AllowComments: true
+
+Naming/PredicateMethod:
+  Enabled: false

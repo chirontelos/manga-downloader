@@ -1,3 +1,13 @@
-*.json
 *.zip
-/*/
+
+# Runtime data (per-user library)
+/jsons/
+/mangas/
+/download_errors.log
+
+# Tooling / local artefacts
+/.bundle/
+/.ruby-lsp/
+/coverage/
+/tmp/
+/session-ses_*.md
