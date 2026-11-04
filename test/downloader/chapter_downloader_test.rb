@@ -147,6 +147,42 @@ class ChapterDownloaderTest < Minitest::Test
     end
   end
 
+  def test_nothing_to_download_requires_every_chapter_to_be_complete
+    with_config do |config, _dir|
+      chapters = {
+        'c2' => { 'title' => 'Chapter 2', 'href' => '/read/m/c2' },
+        'c1' => { 'title' => 'Chapter 1', 'href' => '/read/m/c1' }
+      }
+      downloader = build(config, chapters)
+
+      refute downloader.nothing_to_download?
+
+      complete = File.join(config.mangas_dir, 'Berserk', 'Chapter 1')
+      FileUtils.mkdir_p(complete)
+      File.write(File.join(complete, '001.webp'), 'image')
+
+      refute downloader.nothing_to_download?
+
+      second = File.join(config.mangas_dir, 'Berserk', 'Chapter 2')
+      FileUtils.mkdir_p(second)
+      File.write(File.join(second, '001.webp'), 'image')
+
+      assert downloader.nothing_to_download?
+    end
+  end
+
+  def test_nothing_to_download_ignores_partial_chapters
+    with_config do |config, _dir|
+      folder = File.join(config.mangas_dir, 'Berserk', 'Chapter 1')
+      FileUtils.mkdir_p(folder)
+      File.write(File.join(folder, '001.webp'), 'image')
+      MangaDownloader::Downloader::ChapterMarker.mark_partial(folder)
+      chapters = { 'c1' => { 'title' => 'Chapter 1', 'href' => '/read/m/c1' } }
+
+      refute build(config, chapters).nothing_to_download?
+    end
+  end
+
   def test_retries_a_partial_chapter_even_when_skipping
     with_config do |config, _dir|
       folder = File.join(config.mangas_dir, 'Berserk', 'Chapter 1')

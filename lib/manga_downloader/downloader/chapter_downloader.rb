@@ -38,31 +38,46 @@ module MangaDownloader
 
       def call(limit: nil, skip_existing: false)
         ordered = @chapters.ordered_ascending
-        return empty_summary('Nothing to download.') if ordered.empty?
+        return Summary.empty if ordered.empty?
 
-        manga_root = File.join(@config.mangas_dir, Naming.path_segment(@manga_name))
-        FileUtils.mkdir_p(manga_root)
+        root = manga_root
+        FileUtils.mkdir_p(root)
         summary = Summary.empty
 
         ordered.each_with_index do |chapter, index|
           break if limit_reached?(limit, summary)
 
-          summary, status = download_chapter(chapter, manga_root, summary, skip_existing: skip_existing)
+          summary, status = download_chapter(chapter, root, summary, skip_existing: skip_existing)
           break if limit_reached?(limit, summary)
           next if status == :skipped || index >= ordered.size - 1
 
           pause_before_next_chapter
         end
 
-        @reporter.info("All done at #{Time.now}")
         summary
+      end
+
+      # True when every chapter is already complete and would be skipped, so
+      # callers can stay silent instead of announcing a download that does
+      # nothing.
+      def nothing_to_download?(skip_existing: true)
+        chapters = @chapters.ordered_ascending
+        return true if chapters.empty?
+
+        root = manga_root
+        chapters.all? do |chapter|
+          skip_existing && ChapterMarker.complete?(chapter_directory(root, chapter))
+        end
       end
 
       private
 
-      def empty_summary(message)
-        @reporter.info(message)
-        Summary.empty
+      def manga_root
+        File.join(@config.mangas_dir, Naming.path_segment(@manga_name))
+      end
+
+      def chapter_directory(root, chapter)
+        File.join(root, Naming.path_segment(chapter.title || chapter.id))
       end
 
       def limit_reached?(limit, summary)

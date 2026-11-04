@@ -13,11 +13,14 @@ class AutoDownloadTest < Minitest::Test
   end
 
   class FakeDownloader
-    def initialize(summary, calls, limit_cap)
+    def initialize(summary, calls, limit_cap, nothing_to_download: false)
       @summary = summary
       @calls = calls
       @limit_cap = limit_cap
+      @nothing_to_download = nothing_to_download
     end
+
+    def nothing_to_download?(**_options) = @nothing_to_download
 
     def call(limit:, skip_existing:)
       @calls << [limit, skip_existing]
@@ -114,6 +117,28 @@ class AutoDownloadTest < Minitest::Test
       assert_equal [[3, true]], calls
       assert_match(/Downloading Beta/, @out.string)
       refute_match(/Downloading Alpha/, @out.string)
+    end
+  end
+
+  def test_skips_fully_downloaded_mangas_without_printing_or_downloading
+    with_config do |config, _dir|
+      seed(config, %w[Alpha Beta])
+      calls = []
+      auto = MangaDownloader::AutoDownload.new(
+        config: config, reporter: @reporter, limit: 3,
+        check_updates: false, checker: FakeChecker.new,
+        downloader_factory: lambda do |name, _chapters|
+          FakeDownloader.new(
+            Summary.empty.with(completed: 1), calls, 1,
+            nothing_to_download: name == 'Alpha'
+          )
+        end
+      )
+      auto.run
+
+      assert_equal [[3, true]], calls
+      refute_match(/Downloading Alpha/, @out.string)
+      assert_match(/Downloading Beta/, @out.string)
     end
   end
 

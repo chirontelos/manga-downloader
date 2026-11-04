@@ -115,7 +115,6 @@ module MangaDownloader
           next
         end
 
-        @reporter.info("Downloading #{name}...")
         count = download_manga(name, path, remaining)
 
         next unless count.positive?
@@ -132,7 +131,11 @@ module MangaDownloader
 
     def download_manga(name, path, remaining)
       chapters = @store.load_path(path)
-      summary = @downloader_factory.call(name, chapters).call(limit: remaining, skip_existing: true)
+      downloader = @downloader_factory.call(name, chapters)
+      return 0 if downloader.nothing_to_download?(skip_existing: true)
+
+      @reporter.info("Downloading #{name}...")
+      summary = downloader.call(limit: remaining, skip_existing: true)
       summary.completed
     rescue NotFoundError => e
       @reporter.warn(e.message)
