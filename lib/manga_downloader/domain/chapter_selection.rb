@@ -5,39 +5,50 @@ require_relative 'chapter_list'
 module MangaDownloader
   module Domain
     # Parses the user's chapter selection grammar: "100", "100-105",
-    # "100,135,151" and combinations thereof. Returns a ChapterList in
-    # newest-first order, matching the previous behaviour.
+    # "100,135,151" and combinations thereof. Ranges select every chapter whose
+    # number falls inside the range, so "1-5" also includes 1.1, 1.2, ... 1.7.
+    # Returns a ChapterList in newest-first order, matching the previous
+    # behaviour.
     module ChapterSelection
       module_function
 
       def parse(input, chapter_list)
-        numbers = parse_numbers(input)
-        return ChapterList.new([]) if numbers.empty?
+        ranges = parse_ranges(input)
+        return ChapterList.new([]) if ranges.empty?
 
-        by_number = {}
-        chapter_list.each do |chapter|
-          by_number[chapter.number] = chapter unless chapter.number.nil?
+        selected = chapter_list.select do |chapter|
+          chapter.number && ranges.any? { |range| range.cover?(chapter.number) }
         end
 
-        selected = numbers.uniq.sort.reverse.filter_map { |number| by_number[number] }
-        ChapterList.new(selected)
+        ChapterList.new(
+          selected.sort_by { |chapter| [-(chapter.number || 0), chapter.index || 0] }
+        )
       end
 
-      def parse_numbers(input)
+      def parse_ranges(input)
         return [] if input.nil?
 
-        input.split(',').flat_map do |part|
+        input.split(',').filter_map do |part|
           part = part.strip
-          next [] if part.empty?
+          next if part.empty?
 
           if part.include?('-')
-            from, to = part.split('-').map { |value| value.strip.to_f }
-            from, to = [from, to].minmax
-            (from.to_i..to.to_i).map(&:to_f)
+            from, to = part.split('-', 2).map { |value| number(value) }
+            next if from.nil? || to.nil?
+
+            low, high = [from, to].minmax
+            low..high
           else
-            [part.to_f]
+            value = number(part)
+            value..value if value
           end
         end
+      end
+
+      def number(value)
+        Float(value.strip)
+      rescue ArgumentError, TypeError
+        nil
       end
     end
   end
