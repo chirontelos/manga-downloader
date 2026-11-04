@@ -27,6 +27,44 @@ bin/manga --reset-quota
 `main.rb` is kept as a compatibility shim; `bin/manga` is the preferred entry
 point.
 
+### Docker
+
+The image bundles Ruby and Chromium, so only Docker is required on the host.
+Runtime data is bind-mounted from the project, so downloads and saved chapter
+lists stay in the usual `jsons/` and `mangas/` folders.
+
+```sh
+docker compose build
+
+# Interactive menu (add/search/download)
+docker compose run --rm manga
+
+# Unattended download, for cron
+docker compose run --rm manga --auto --limit 50
+docker compose run --rm manga --auto --manga "Vagabond"
+docker compose run --rm manga --status
+```
+
+The container runs as UID/GID `1000` by default. If your user has a different
+ID, set it once in a `.env` file next to `docker-compose.yml`:
+
+```sh
+MANGA_UID=$(id -u)
+MANGA_GID=$(id -g)
+```
+
+Then run the commands above normally. A daily cron entry can look like:
+
+```cron
+0 3 * * * cd /home/newm/projects/mangaDownloader && docker compose run --rm manga --auto --limit 50 >> cron.log 2>&1
+```
+
+Override timings/limits with environment variables, for example:
+
+```sh
+MANGA_IMAGE_THREADS=3 docker compose run --rm manga --auto
+```
+
 ### Configuration
 
 Everything tunable lives in `MangaDownloader::Config` and can be overridden with

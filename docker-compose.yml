@@ -1,0 +1,27 @@
+services:
+  manga:
+    build: .
+    image: manga-downloader
+    init: true
+    stdin_open: true
+    tty: true
+
+    # Run as your host user so jsons/, mangas/ and the error log stay writable
+    # and aren't owned by root. Override with MANGA_UID / MANGA_GID if needed.
+    user: "${MANGA_UID:-1000}:${MANGA_GID:-1000}"
+
+    environment:
+      MANGA_HOME: /app
+      CHROMIUM_PATH: /usr/bin/chromium
+      FERRUM_CHROME_DOCKERIZE: "true"
+      MANGA_DAILY_LIMIT: "${MANGA_DAILY_LIMIT:-300}"
+      MANGA_IMAGE_THREADS: "${MANGA_IMAGE_THREADS:-6}"
+      MANGA_HTTP_OPEN_TIMEOUT: "${MANGA_HTTP_OPEN_TIMEOUT:-60}"
+      MANGA_HTTP_READ_TIMEOUT: "${MANGA_HTTP_READ_TIMEOUT:-60}"
+      MANGA_HTTP_RETRIES: "${MANGA_HTTP_RETRIES:-3}"
+      HOME: /tmp
+
+    volumes:
+      # The whole project is mounted so the menu, saved lists, downloads and
+      # logs all use the same files as the non-Docker setup.
+      - .:/app
