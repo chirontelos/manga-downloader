@@ -228,7 +228,7 @@ All settings are environment variables:
 | `MANGA_BASE_URL` | `https://atsu.moe` | Site base URL |
 | `CHROMIUM_PATH` | auto-detected | Chromium/Chrome executable |
 | `MANGA_DAILY_LIMIT` | `300` | Default chapters per day in auto mode |
-| `MANGA_IMAGE_THREADS` | `6` | Parallel image downloads per chapter (capped at 10) |
+| `MANGA_IMAGE_THREADS` | `10` | Parallel image downloads per chapter (capped at 20) |
 | `MANGA_HTTP_OPEN_TIMEOUT` | `60` | TCP connect timeout, seconds |
 | `MANGA_HTTP_READ_TIMEOUT` | `60` | Per-read timeout, seconds |
 | `MANGA_HTTP_RETRIES` | `3` | Extra attempts per failed image |
@@ -249,7 +249,7 @@ MANGA_PAGE_TIMEOUT=180 MANGA_PROTOCOL_TIMEOUT=300 docker compose run --rm manga 
 ### Download behaviour
 
 - Images are fetched with at most `MANGA_IMAGE_THREADS` concurrent requests
-  (6 by default, never more than 10).
+  (10 by default, never more than 20).
 - Failed images are retried, then written to `download_errors.log` only if every
   attempt fails.
 - Existing non-empty pages are skipped, so rerunning resumes a chapter.

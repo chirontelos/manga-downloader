@@ -179,8 +179,8 @@ module MangaDownloader
         href.start_with?('http') ? href : "#{@config.base_url}#{href}"
       end
 
-      # Fixed-size worker pool: image_threads is clamped to 1..10 by Config,
-      # so a chapter never downloads more than 10 images at a time.
+      # Fixed-size worker pool: image_threads is clamped to 1..20 by Config,
+      # so a chapter never downloads more than 20 images at a time.
       def download_images(image_urls, directory, title)
         queue = Queue.new
         image_urls.each_with_index { |url, index| queue << [url, index] }

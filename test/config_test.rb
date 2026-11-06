@@ -55,15 +55,15 @@ class ConfigTest < Minitest::Test
         config = MangaDownloader::Config.new(root: dir)
 
         assert_equal 3, config.http_retries
-        assert_equal 6, config.image_threads
+        assert_equal 10, config.image_threads
       end
     end
   end
 
-  def test_image_threads_are_capped_at_ten
-    with_env('MANGA_IMAGE_THREADS' => '25') do
+  def test_image_threads_are_capped_at_twenty
+    with_env('MANGA_IMAGE_THREADS' => '50') do
       Dir.mktmpdir do |dir|
-        assert_equal 10, MangaDownloader::Config.new(root: dir).image_threads
+        assert_equal 20, MangaDownloader::Config.new(root: dir).image_threads
       end
     end
 

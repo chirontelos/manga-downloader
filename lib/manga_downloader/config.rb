@@ -21,7 +21,7 @@ module MangaDownloader
                 :stale_iterations_before_stop, :quiet_iterations_before_stop,
                 :error_log_max_bytes
 
-    MAX_IMAGE_THREADS = 10
+    MAX_IMAGE_THREADS = 20
 
     def initialize(
       root: ENV.fetch('MANGA_HOME', PROJECT_ROOT),
@@ -61,7 +61,7 @@ module MangaDownloader
       @http_read_timeout = http_read_timeout || self.class.env_float('MANGA_HTTP_READ_TIMEOUT', 60)
       @http_retries = http_retries || self.class.env_int('MANGA_HTTP_RETRIES', 3)
       @http_retry_delay = http_retry_delay || self.class.env_float('MANGA_HTTP_RETRY_DELAY', 2)
-      @image_threads = (image_threads || self.class.env_int('MANGA_IMAGE_THREADS', 6)).clamp(1, MAX_IMAGE_THREADS)
+      @image_threads = (image_threads || self.class.env_int('MANGA_IMAGE_THREADS', 10)).clamp(1, MAX_IMAGE_THREADS)
       @daily_limit = daily_limit || self.class.env_int('MANGA_DAILY_LIMIT', 300)
       @chapter_delay = chapter_delay
       @manga_delay = manga_delay
