@@ -341,3 +341,11 @@ test/                              Minitest suite
 
 - Chapter lists are stored newest-first; downloads run oldest-first.
 - A lock file prevents two auto-downloads from running at the same time.
+
+## Disclaimer
+
+This tool is provided strictly for **educational and research purposes**. It is designed solely to demonstrate web scraping techniques and to allow users to create personal, offline backups of media/manga they already legally own or have explicit permission to access. 
+
+* **No Content Storage:** This repository does not host, store, or distribute any copyrighted material or images. It contains only source code.
+* **User Responsibility:** The developer does not condone piracy or unauthorized distribution of copyrighted content. Any use of this script to access or download material without legal rights is entirely at the user's own risk and responsibility. 
+* **Platform Terms:** Users are responsible for complying with the Terms of Service of any third-party websites they interact with using this tool.
