@@ -3,11 +3,29 @@
 # Runtime data (per-user library)
 /jsons/
 /mangas/
+*.log
+/manga_downloader_log.txt
 /download_errors.log
+
+# Local environment and overrides
+/.env
+/.env.*
+!/.env.example
+/docker-compose.override.yml
 
 # Tooling / local artefacts
 /.bundle/
 /.ruby-lsp/
 /coverage/
 /tmp/
+/vendor/bundle/
 /session-ses_*.md
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~

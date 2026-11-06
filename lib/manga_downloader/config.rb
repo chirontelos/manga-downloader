@@ -12,6 +12,7 @@ module MangaDownloader
     PROJECT_ROOT = File.expand_path('../..', __dir__)
 
     attr_reader :root, :base_url, :browser_path, :headless, :page_timeout,
+                :protocol_timeout, :chapter_retries,
                 :http_open_timeout, :http_read_timeout, :http_retries,
                 :http_retry_delay, :image_threads, :daily_limit,
                 :chapter_delay, :manga_delay, :navigation_delay,
@@ -27,7 +28,9 @@ module MangaDownloader
       base_url: ENV.fetch('MANGA_BASE_URL', 'https://atsu.moe'),
       browser_path: ENV['CHROMIUM_PATH'] || default_browser_path,
       headless: true,
-      page_timeout: 30,
+      page_timeout: nil,
+      protocol_timeout: nil,
+      chapter_retries: nil,
       http_open_timeout: nil,
       http_read_timeout: nil,
       http_retries: nil,
@@ -51,7 +54,9 @@ module MangaDownloader
       @base_url = base_url
       @browser_path = browser_path
       @headless = headless
-      @page_timeout = page_timeout
+      @page_timeout = page_timeout || self.class.env_float('MANGA_PAGE_TIMEOUT', 60)
+      @protocol_timeout = protocol_timeout || self.class.env_float('MANGA_PROTOCOL_TIMEOUT', 120)
+      @chapter_retries = chapter_retries || self.class.env_int('MANGA_CHAPTER_RETRIES', 1)
       @http_open_timeout = http_open_timeout || self.class.env_float('MANGA_HTTP_OPEN_TIMEOUT', 60)
       @http_read_timeout = http_read_timeout || self.class.env_float('MANGA_HTTP_READ_TIMEOUT', 60)
       @http_retries = http_retries || self.class.env_int('MANGA_HTTP_RETRIES', 3)

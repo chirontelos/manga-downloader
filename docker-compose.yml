@@ -1,19 +1,22 @@
 services:
   manga:
+    # Kept as a plain build so older Docker Compose versions (which don't
+    # support build.provenance) can still build the project.
     build: .
-    image: manga-downloader
     init: true
     stdin_open: true
     tty: true
 
-    # Run as your host user so jsons/, mangas/ and the error log stay writable
-    # and aren't owned by root. Override with MANGA_UID / MANGA_GID if needed.
-    user: "${MANGA_UID:-1000}:${MANGA_GID:-1000}"
-
+    # The entrypoint runs as root only long enough to switch to the owner of
+    # the bind-mounted project, so no MANGA_UID/MANGA_GID setup is normally
+    # required. Set them to override the detected owner.
     environment:
       MANGA_HOME: /app
       CHROMIUM_PATH: /usr/bin/chromium
       FERRUM_CHROME_DOCKERIZE: "true"
+      MANGA_PAGE_TIMEOUT: "${MANGA_PAGE_TIMEOUT:-90}"
+      MANGA_PROTOCOL_TIMEOUT: "${MANGA_PROTOCOL_TIMEOUT:-180}"
+      MANGA_CHAPTER_RETRIES: "${MANGA_CHAPTER_RETRIES:-1}"
       MANGA_DAILY_LIMIT: "${MANGA_DAILY_LIMIT:-300}"
       MANGA_IMAGE_THREADS: "${MANGA_IMAGE_THREADS:-6}"
       MANGA_HTTP_OPEN_TIMEOUT: "${MANGA_HTTP_OPEN_TIMEOUT:-60}"

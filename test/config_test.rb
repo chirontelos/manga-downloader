@@ -8,6 +8,7 @@ class ConfigTest < Minitest::Test
   ENV_KEYS = %w[
     MANGA_HTTP_OPEN_TIMEOUT MANGA_HTTP_READ_TIMEOUT MANGA_HTTP_RETRIES
     MANGA_HTTP_RETRY_DELAY MANGA_IMAGE_THREADS MANGA_DAILY_LIMIT
+    MANGA_PAGE_TIMEOUT MANGA_PROTOCOL_TIMEOUT MANGA_CHAPTER_RETRIES
   ].freeze
 
   def with_env(values)
@@ -27,7 +28,10 @@ class ConfigTest < Minitest::Test
       'MANGA_HTTP_RETRIES' => '5',
       'MANGA_HTTP_RETRY_DELAY' => '1.5',
       'MANGA_IMAGE_THREADS' => '3',
-      'MANGA_DAILY_LIMIT' => '100'
+      'MANGA_DAILY_LIMIT' => '100',
+      'MANGA_PAGE_TIMEOUT' => '75',
+      'MANGA_PROTOCOL_TIMEOUT' => '150',
+      'MANGA_CHAPTER_RETRIES' => '2'
     ) do
       Dir.mktmpdir do |dir|
         config = MangaDownloader::Config.new(root: dir)
@@ -38,6 +42,9 @@ class ConfigTest < Minitest::Test
         assert_equal 1.5, config.http_retry_delay
         assert_equal 3, config.image_threads
         assert_equal 100, config.daily_limit
+        assert_equal 75.0, config.page_timeout
+        assert_equal 150.0, config.protocol_timeout
+        assert_equal 2, config.chapter_retries
       end
     end
   end
@@ -68,11 +75,12 @@ class ConfigTest < Minitest::Test
   end
 
   def test_explicit_values_win_over_env
-    with_env('MANGA_HTTP_OPEN_TIMEOUT' => '25') do
+    with_env('MANGA_HTTP_OPEN_TIMEOUT' => '25', 'MANGA_PAGE_TIMEOUT' => '75') do
       Dir.mktmpdir do |dir|
-        config = MangaDownloader::Config.new(root: dir, http_open_timeout: 7)
+        config = MangaDownloader::Config.new(root: dir, http_open_timeout: 7, page_timeout: 20)
 
         assert_equal 7, config.http_open_timeout
+        assert_equal 20, config.page_timeout
       end
     end
   end

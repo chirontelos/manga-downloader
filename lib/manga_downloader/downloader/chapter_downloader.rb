@@ -112,17 +112,11 @@ module MangaDownloader
       def fetch_chapter(chapter, title, directory)
         ChapterMarker.mark_partial(directory)
         @reporter.info("Loading #{title}")
-        browser = nil
-        page = nil
+        attempt = 0
 
         begin
-          browser = @browser_factory.call
-          page = browser.create_page
-          page.go_to(absolute_url(chapter.href))
-          page.network.wait_for_idle
-          sleep(@config.navigation_delay)
-
-          image_urls = Scraping::Html.page_image_urls(page.body)
+          attempt += 1
+          image_urls = load_image_urls(chapter)
           return chapter_without_images(title) if image_urls.empty?
 
           @reporter.progress("  Found #{image_urls.size} pages, downloading...\t")
@@ -136,14 +130,44 @@ module MangaDownloader
             @reporter.warn('  Some pages failed; chapter will be retried next run')
             :partial
           end
-        rescue StandardError => e
-          @reporter.error("chapter error: #{e.class}: #{e.message}", manga: @manga_name, chapter: title)
+        rescue Ferrum::TimeoutError => e
+          if attempt <= @config.chapter_retries
+            @reporter.warn("  Browser timed out; retrying #{title} (attempt #{attempt + 1})...")
+            retry
+          end
+
+          log_chapter_error(e, title)
           :failed
+        rescue StandardError => e
+          log_chapter_error(e, title)
+          :failed
+        end
+      end
+
+      # Opens the reader page and extracts image URLs. The browser is always
+      # closed before returning, including on a timeout, so a retry starts from
+      # a clean Chromium process.
+      def load_image_urls(chapter)
+        browser = nil
+        page = nil
+
+        begin
+          browser = @browser_factory.call
+          page = browser.create_page
+          page.go_to(absolute_url(chapter.href))
+          page.network.wait_for_idle
+          sleep(@config.navigation_delay)
+          Scraping::Html.page_image_urls(page.body)
         ensure
           clear_page(page)
           Scraping::BrowserSession.quit(browser)
           Memory.release
         end
+      end
+
+      def log_chapter_error(error, title)
+        @reporter.error("chapter error: #{error.class}: #{error.message}",
+                        manga: @manga_name, chapter: title)
       end
 
       def chapter_without_images(title)

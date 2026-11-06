@@ -18,7 +18,11 @@ module MangaDownloader
       end
 
       def build(config)
-        options = { headless: config.headless, timeout: config.page_timeout }
+        options = {
+          headless: config.headless,
+          timeout: config.page_timeout,
+          protocol_timeout: config.protocol_timeout
+        }
         options[:browser_path] = config.browser_path if config.browser_path
         Ferrum::Browser.new(**options)
       end

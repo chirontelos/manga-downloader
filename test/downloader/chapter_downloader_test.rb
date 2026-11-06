@@ -33,6 +33,19 @@ class ChapterDownloaderTest < Minitest::Test
     def quit = nil
   end
 
+  class TimeoutPage
+    def network = FakeNetwork.new
+
+    def go_to(_url)
+      raise Ferrum::TimeoutError, 'timed out waiting for the page'
+    end
+  end
+
+  class TimeoutBrowser
+    def create_page = TimeoutPage.new
+    def quit = nil
+  end
+
   class FakeFetcher
     attr_reader :calls
 
@@ -55,14 +68,15 @@ class ChapterDownloaderTest < Minitest::Test
     end.join
   end
 
-  def build(config, chapters, fetcher: FakeFetcher.new, image_count: 2, delays: [])
+  def build(config, chapters, fetcher: FakeFetcher.new, image_count: 2, delays: [],
+            browser_factory: nil)
     MangaDownloader::Downloader::ChapterDownloader.new(
       config: config,
       manga_name: 'Berserk',
       chapters: chapter_list(chapters),
       reporter: silence_reporter,
       fetcher: fetcher,
-      browser_factory: -> { FakeBrowser.new(html_with_images(image_count)) },
+      browser_factory: browser_factory || -> { FakeBrowser.new(html_with_images(image_count)) },
       sleeper: ->(seconds) { delays << seconds }
     )
   end
@@ -144,6 +158,22 @@ class ChapterDownloaderTest < Minitest::Test
       assert_equal 1, summary.skipped
       assert_equal 2, summary.completed
       assert_equal 1, delays.size, 'only the two real downloads should be paced'
+    end
+  end
+
+  def test_retries_a_chapter_after_a_browser_timeout
+    with_config do |config, _dir|
+      attempts = 0
+      factory = lambda do
+        attempts += 1
+        attempts == 1 ? TimeoutBrowser.new : FakeBrowser.new(html_with_images(1))
+      end
+      chapters = { 'c1' => { 'title' => 'Chapter 1', 'href' => '/read/m/c1' } }
+
+      summary = build(config, chapters, browser_factory: factory).call
+
+      assert_equal 1, summary.completed
+      assert_equal 2, attempts
     end
   end
 

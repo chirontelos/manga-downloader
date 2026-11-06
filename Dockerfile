@@ -33,11 +33,12 @@ RUN bundle config set without 'development test' \
     && bundle install
 
 COPY . .
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN mkdir -p /app/jsons /app/mangas \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chown -R manga:manga /app
 
-USER manga
-
-# `docker compose run --rm manga` opens the menu; append `--auto` for cron.
-ENTRYPOINT ["bundle", "exec", "bin/manga"]
+# The entrypoint starts as root, then drops to the owner of the mounted
+# project directory so the host user can read/write jsons/ and mangas/.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
