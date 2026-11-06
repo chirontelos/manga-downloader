@@ -182,8 +182,6 @@ bundle install
 bin/manga
 ```
 
-`main.rb` is kept as a compatibility entry point, but `bin/manga` is preferred.
-
 ## Command-line options
 
 ```

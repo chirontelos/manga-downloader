@@ -102,7 +102,7 @@ module MangaDownloader
     def parse_options(argv)
       options = {}
       parser = OptionParser.new do |opts|
-        opts.banner = 'Usage: ruby main.rb [options]'
+        opts.banner = 'Usage: bin/manga [options]'
         opts.separator ''
         opts.separator 'Run without options for the interactive menu.'
         opts.separator ''
