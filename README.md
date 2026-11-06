@@ -341,5 +341,3 @@ test/                              Minitest suite
 
 - Chapter lists are stored newest-first; downloads run oldest-first.
 - A lock file prevents two auto-downloads from running at the same time.
-- Use this tool for personal use and respect the site's terms of service and
-  your local copyright laws.
